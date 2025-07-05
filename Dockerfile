@@ -21,5 +21,5 @@ EXPOSE 8000
 # Utiliza Uvicorn para servir a aplicação FastAPI.
 # O app:app indica o módulo e objeto da aplicação.
 # --host 0.0.0.0 permite acesso externo ao contêiner.
-# --port 8000 define a porta em que a aplicação escuta.
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# --port ${PORT:-8000} define a porta em que a aplicação escuta, lendo da variável de ambiente PORT.
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
