@@ -1,0 +1,65 @@
+name: Build, Push, and Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ "main" ]
+
+# Garante que apenas um deploy execute por vez e cancela os anteriores.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: southamerica-east1 
+  GAR_REPOSITORY: cloud-run-source-deploy 
+  SERVICE_NAME: api 
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # Define as permissões mínimas para o token do GitHub. Boa prática de segurança.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker for Artifact Registry
+      run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+    - name: Build and Push Docker image
+      run: |
+        # Define a tag da imagem usando o hash do commit para rastreabilidade
+        IMAGE_TAG=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        
+        # Constrói a imagem
+        docker build . --file Dockerfile --tag $IMAGE_TAG
+        
+        # Envia a imagem para o Google Artifact Registry
+        docker push $IMAGE_TAG
+
+    - name: Deploy to Cloud Run
+      id: deploy
+      run: |
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+          --region ${{ env.GCP_REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --quiet
+
+    - name: Show Deployed URL
+      run: echo "Serviço disponível em: ${{ steps.deploy.outputs.url }}"

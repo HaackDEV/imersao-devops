@@ -1,0 +1,14 @@
+services:
+  # Nome do serviço, pode ser o que você preferir.
+  api:
+    build: .     # Constrói a imagem a partir do Dockerfile no diretório atual (.).
+    container_name: api     # Nome do contêiner.
+
+    ports:
+      - "8000:8000"      # Mapeia a porta 8000 do contêiner para a porta 8000 da sua máquina.
+
+    volumes:
+      - .:/app      # Mapeia o diretório local para o diretório /app dentro do contêiner.
+                    # Alterações no código são refletidas automaticamente no contêiner.
+                    # Isso é crucial para que o --reload (definido no seu Dockerfile) funcione.
+
