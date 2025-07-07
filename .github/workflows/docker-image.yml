@@ -61,4 +61,4 @@ jobs:
           --quiet
 
     - name: Show Deployed URL
-      run: echo "Serviço disponível em: ${{ steps.deploy.outputs.url }}"
+      run: echo "Serviço disponível em ${{ steps.deploy.outputs.url }}"
